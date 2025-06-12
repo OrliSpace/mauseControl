@@ -1,4 +1,4 @@
-# sender.py (UDP version with movement threshold and click support)
+# client.py (TCP version)
 import socket
 import os
 from dotenv import load_dotenv
@@ -9,14 +9,13 @@ load_dotenv()
 host = os.getenv("HOST")
 port = int(os.getenv("PORT"))
 
-# Create a UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# Create TCP connection
+sock = socket.create_connection((host, port))
 
 # Track last sent mouse position
 last_x, last_y = None, None
-threshold = 5  # Minimum pixel distance to trigger sending
+threshold = 5  # Only send if moved more than this
 
-# Callback when mouse moves
 def on_move(x, y):
     global last_x, last_y
 
@@ -30,21 +29,21 @@ def on_move(x, y):
 
     try:
         msg = f"move {x} {y}\n"
-        sock.sendto(msg.encode(), (host, port))
+        sock.sendall(msg.encode())
     except Exception as e:
-        print(f"[!] Error sending data: {e}")
+        print(f"[!] Failed to send move: {e}")
         return False
 
-# Callback when mouse is clicked
 def on_click(x, y, button, pressed):
     if button == mouse.Button.left and pressed:
         try:
-            sock.sendto(b"click\n", (host, port))
+            sock.sendall(b"click\n")
         except Exception as e:
-            print(f"[!] Error sending click: {e}")
+            print(f"[!] Failed to send click: {e}")
 
-print(f"[+] Sending mouse events to {host}:{port}")
+print(f"[+] Connected to {host}:{port} – sending mouse events...")
 
-# Start mouse listener
 with mouse.Listener(on_move=on_move, on_click=on_click) as listener:
     listener.join()
+
+sock.close()
