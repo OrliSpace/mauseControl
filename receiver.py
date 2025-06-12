@@ -1,25 +1,31 @@
-
+# server.py
 import socket
-import os
-from dotenv import load_dotenv
+import pyautogui
 
-host = '0.0.0.0'  # מאפשר להתחבר מכל כתובת
-port = 12345
+HOST = '0.0.0.0'
+PORT = 5001
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Create basic TCP server socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.bind((HOST, PORT))
+sock.listen(5)
 
-server_socket.bind((host, port))
-server_socket.listen(1)
-real_ip = socket.gethostbyname(socket.gethostname())
-print(f"Receiver IP (on local network): {real_ip}")
-print(f"Reciever is listening on port {port}...")
+print(f"[+] Server listening on {HOST}:{PORT}")
 
+conn, addr = sock.accept()
+print(f"[+] Connected by {addr}")
 
-conn, addr = server_socket.accept()
-print(f"Connected by {addr}")
+while True:
+    data = conn.recv(1024).decode()
+    if not data:
+        break
 
-#get messege form the sender
-data = conn.recv(1024).decode()
-print("Received message:", data)
-
-conn.close()
+    # Handle multiple lines if received in one packet
+    for line in data.strip().split('\n'):
+        parts = line.strip().split()
+        if parts[0] == "move" and len(parts) == 3:
+            try:
+                x, y = int(parts[1]), int(parts[2])
+                pyautogui.moveTo(x, y)
+            except ValueError:
+                print("[!] Invalid coordinates received.")
